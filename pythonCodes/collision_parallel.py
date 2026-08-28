@@ -128,6 +128,7 @@ def process_shard(
     n: int,
     db_path: str,
     batch_size: int,
+    shards: int,
     bucket_mode: str = "leaves+minsum",
 ):
     """
@@ -156,7 +157,9 @@ def process_shard(
     current_batch_size = batch_size
 
     for i, T in enumerate(nx.nonisomorphic_trees(n)):
-        if i < last_processed:
+        if i % shards != shard_id:
+            continue
+        if i <= last_processed:
             continue
 
         batch_trees.append(T)
@@ -257,7 +260,7 @@ def merge_shards(n: int, shards: int, base_dir: Path):
 def run_optimized(
     n: int = 5,
     batch_size: int = 1000,
-    shards: int = 8,
+    shards: int = 4,
     workers: int = 4,
     bucket_mode: str = "leaves+minsum",
 ):
@@ -286,7 +289,7 @@ def run_optimized(
 
     # آرگومان‌های worker
     tasks = [
-        (shard_id, n, db_paths[shard_id], batch_size, bucket_mode)
+        (shard_id, n, db_paths[shard_id], batch_size,shards, bucket_mode)
         for shard_id in range(shards)
     ]
 
@@ -310,14 +313,14 @@ if __name__ == "__main__":
     import argparse
 
     # مقدار پیش‌فرض
-    DEFAULT_N = 17
+    DEFAULT_N = 20
 
     parser = argparse.ArgumentParser(
         description="Parallel tree-collision search (multiprocessing)"
     )
     parser.add_argument("--n",           type=int, default=DEFAULT_N,          help="تعداد رأس")
     parser.add_argument("--batch-size",  type=int, default=1000,               help="اندازه دسته")
-    parser.add_argument("--shards",      type=int, default=8,                  help="تعداد shardها")
+    parser.add_argument("--shards",      type=int, default=4,                  help="تعداد shardها")
     parser.add_argument("--workers",     type=int, default=mp.cpu_count(),     help="تعداد پروسه‌های موازی")
     parser.add_argument(
         "--bucket-mode",
